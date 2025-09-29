@@ -2,12 +2,26 @@
 //  Untitled.swift
 //  BeyondApp
 //
+//  Created by Ghadeer Fallatah on 08/04/1447 AH.
+//
+
+//
+//  Untitled.swift
+//  BeyondApp
+//
+//  Created by Ghadeer Fallatah on 08/04/1447 AH.
+//
+
+//
+//  Untitled.swift
+//  BeyondApp
+//
 //  Created by Ghadeer Fallatah on 07/04/1447 AH.
 //
 import SwiftUI
 import UIKit
 
-struct Popup: View {
+struct PopupSuffle: View {
     let icon: String
     let title: String
     let messge: String
@@ -23,7 +37,8 @@ struct Popup: View {
                     Rectangle()
                         .fill(Color.white)
                         .frame(width: 350, height: 300)
-                        .clipShape(RoundedCorner(radius: 16, corners: [.topLeft, .topRight,.bottomLeft, .bottomRight]))
+                        .cornerRadius(16) // all corners → use built-in
+                        //.clipShape(RoundedCorner(radius: 16, corners: [.topLeft, .topRight,.bottomLeft, .bottomRight]))
                         //.cornerRadius(16)
                         .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 10)
                     
@@ -43,11 +58,10 @@ struct Popup: View {
                                                 .fill(Color.white)
                                                 .frame(width: 110, height: 110)
                                                 .overlay(
-                                                    Image(icon)
+                                                    Image(systemName: icon)
                                                         .resizable()
                                                         .scaledToFit()
-                                                        .frame(width: 85, height: 85)
-                                                    
+                                                        .frame(width: 67, height: 67)
                                                 )
                                                 .padding(.top,78)
                                         }
@@ -67,11 +81,12 @@ struct Popup: View {
                     }
                     
                     VStack(spacing: 8) {
-                        Text("CONGRATSULATION!")
+                        Text("ALL SHUFFLED USED!")
                             .font(.headline)
                             .bold()
                             .foregroundColor(.black)
-                        Text("You did it!, keep up the hard work!")
+                        Text("You used all the avaliable")
+                        Text("shuffles, try and do this challenge!")
                             .font(.subheadline)
                             .foregroundColor(.black)
                     }
@@ -102,5 +117,5 @@ struct RoundedCorner: Shape {
 }
 
 #Preview {
-    Popup(icon: "rocket", title: "Title", messge: "Message text goes here.", onClose: {})
+    PopupSuffle(icon: "shuffle", title: "Title", messge: "Message text goes here.", onClose: {})
 }
