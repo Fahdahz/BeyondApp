@@ -33,7 +33,17 @@ struct ContentView: View {
     @State private var shufflesUsed: Int = 0
     @State private var showCongrats: Bool = false
     @State private var showNoShuffles: Bool = false
+    @AppStorage("isDarkMode") private var isDarkMode = false
 
+    
+    private var bgColors: [Color] {
+           isDarkMode
+           ? [.black.opacity(0.92), .black.opacity(0.75)]
+           : [.orange.opacity(0.18), .pink.opacity(0.12)]
+       }
+
+    
+    
     // Your 3 challenges
     private let challenges: [ChallengeItem] = [
         .init(
@@ -52,9 +62,8 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(colors: [.orange.opacity(0.18), .pink.opacity(0.12)],
-                           startPoint: .top, endPoint: .bottom)
-            .ignoresSafeArea()
+            LinearGradient(colors: bgColors, startPoint: .top, endPoint: .bottom)
+                   .ignoresSafeArea()
 
             VStack(spacing: 18) {
                 Banner(title: "TRY TODAY'S\nCHALLENGE")
@@ -62,6 +71,24 @@ struct ContentView: View {
                     .font(.title3.bold())
                     .multilineTextAlignment(.center)
                     .padding(.top, 8)
+                
+                
+                    .overlay(alignment: .topTrailing) {
+                        Button {
+                            isDarkMode.toggle()
+                        } label: {
+                            Image(systemName: isDarkMode ? "sun.max.fill" : "moon.fill")
+                                .font(.title3)
+                                .padding(10)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Capsule())
+                                .shadow(radius: 2, y: 1)
+                                .accessibilityLabel(isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")
+                        }
+                        .padding(.top, 5)
+                        .padding(.trailing, 190)
+                    }
+
 
                 // Layered background cards for the mockup look
                 ZStack {
