@@ -1,0 +1,7 @@
+
+*.xcuserstate
+.DS_Store
+*.xcuserstate
+xcuserdata/
+*.xcscheme
+xcshcememangement.plist
