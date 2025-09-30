@@ -34,6 +34,7 @@ struct ContentView: View {
     @State private var showCongrats: Bool = false
     @State private var showNoShuffles: Bool = false
     @State private var cardSwapID = UUID()
+    @State private var deckShift = false            // ← drives deck movement
     @AppStorage("isDarkMode") private var isDarkMode = false
 
     
@@ -95,20 +96,24 @@ struct ContentView: View {
                 // Layered background cards for the mockup look
                 // Layered background cards for the mockup look
                 ZStack {
-                    // ghost cards (static)
+                    // ghost cards (animated with deckShift)
                     RoundedRectangle(cornerRadius: 22)
                         .fill(Color(red: 207/255, green: 214/255, blue: 237/255))
                         .frame(width: cardSize.width, height: cardSize.height)
-                        .rotationEffect(.degrees(-6))
-                        .offset(x: -8, y: 12)
+                        .rotationEffect(.degrees(deckShift ? -10 : -6))
+                        .offset(x: deckShift ? -14 : -8, y: deckShift ? 16 : 12)
+                        .scaleEffect(deckShift ? 0.98 : 1.0)
                         .shadow(radius: 4, y: 3)
+                        .animation(.spring(response: 0.45, dampingFraction: 0.9), value: deckShift)
 
                     RoundedRectangle(cornerRadius: 22)
                         .fill(Color(red: 207/255, green: 214/255, blue: 237/255))
                         .frame(width: cardSize.width, height: cardSize.height)
-                        .rotationEffect(.degrees(6))
-                        .offset(x: 10, y: 18)
+                        .rotationEffect(.degrees(deckShift ? 8 : 6))
+                        .offset(x: deckShift ? 16 : 10, y: deckShift ? 22 : 18)
+                        .scaleEffect(deckShift ? 0.98 : 1.0)
                         .shadow(radius: 4, y: 3)
+                        .animation(.spring(response: 0.45, dampingFraction: 0.9), value: deckShift)
 
                     // MAIN card (only this animates)
                     FlipCard(
@@ -120,7 +125,7 @@ struct ContentView: View {
                     .onTapGesture { withAnimation(.spring()) { isFlipped.toggle() } }
                     .id(cardSwapID) // ← animate only the top card by changing this ID
                     .transition(.asymmetric(
-                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        insertion: .fromDeck.combined(with: .opacity),   // ← appear from deck
                         removal:   .move(edge: .leading).combined(with: .opacity)
                     ))
                     .animation(.spring(response: 0.45, dampingFraction: 0.9), value: cardSwapID)
@@ -190,6 +195,7 @@ struct ContentView: View {
             isFlipped = false
             currentIndex = newIndex
             cardSwapID = UUID()   // ← forces only the FlipCard to be replaced/animated
+            deckShift.toggle()    // ← animate the deck movement too
         }
 
         shufflesUsed += 1
@@ -327,9 +333,37 @@ struct Banner: View {
     }
     
 }
-    
-    #Preview {
-        ContentView()
+
+// MARK: - Custom transition: appear from the deck (matches the back ghost card)
+private struct DeckFromModifier: ViewModifier {
+    let offset: CGSize
+    let rotation: Angle
+    let scale: CGFloat
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(scale)
+            .rotationEffect(rotation)
+            .offset(offset)
     }
-    
-    
+}
+
+private extension AnyTransition {
+    // Matches the second ghost card: rotation + offset; tweak as you like
+    static var fromDeck: AnyTransition {
+        let active = DeckFromModifier(
+            offset: CGSize(width: 10, height: 18),
+            rotation: .degrees(6),
+            scale: 0.96
+        )
+        let identity = DeckFromModifier(
+            offset: .zero,
+            rotation: .degrees(0),
+            scale: 1.0
+        )
+        return .modifier(active: active, identity: identity)
+    }
+}
+
+#Preview {
+    ContentView()
+}
