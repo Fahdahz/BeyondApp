@@ -33,6 +33,7 @@ struct ContentView: View {
     @State private var shufflesUsed: Int = 0
     @State private var showCongrats: Bool = false
     @State private var showNoShuffles: Bool = false
+    @State private var cardSwapID = UUID()
     @AppStorage("isDarkMode") private var isDarkMode = false
 
     
@@ -91,24 +92,25 @@ struct ContentView: View {
 
 
                 // Layered background cards for the mockup look
+                // Layered background cards for the mockup look
+                // Layered background cards for the mockup look
                 ZStack {
+                    // ghost cards (static)
                     RoundedRectangle(cornerRadius: 22)
-                        .fill(.ultraThinMaterial)
+                        .fill(Color(red: 207/255, green: 214/255, blue: 237/255))
                         .frame(width: cardSize.width, height: cardSize.height)
                         .rotationEffect(.degrees(-6))
                         .offset(x: -8, y: 12)
                         .shadow(radius: 4, y: 3)
-                        .opacity(0.7)
 
                     RoundedRectangle(cornerRadius: 22)
-                        .fill(.ultraThinMaterial)
+                        .fill(Color(red: 207/255, green: 214/255, blue: 237/255))
                         .frame(width: cardSize.width, height: cardSize.height)
                         .rotationEffect(.degrees(6))
                         .offset(x: 10, y: 18)
                         .shadow(radius: 4, y: 3)
-                        .opacity(0.5)
 
-                    // Main flip card – face rotations prevent mirrored text
+                    // MAIN card (only this animates)
                     FlipCard(
                         front: AnyView(CardFront(text: challenges[currentIndex].front, imageName: iconFrontName)),
                         back:  AnyView(CardBack(text: challenges[currentIndex].back,  imageName: iconBackName)),
@@ -116,7 +118,15 @@ struct ContentView: View {
                         size: cardSize
                     )
                     .onTapGesture { withAnimation(.spring()) { isFlipped.toggle() } }
+                    .id(cardSwapID) // ← animate only the top card by changing this ID
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal:   .move(edge: .leading).combined(with: .opacity)
+                    ))
+                    .animation(.spring(response: 0.45, dampingFraction: 0.9), value: cardSwapID)
+                    .zIndex(1)
                 }
+
 
                 // Buttons
                 HStack(spacing: 12) {
@@ -171,16 +181,20 @@ struct ContentView: View {
             showNoShuffles = true
             return
         }
-        var newIndex = currentIndex
-        if challenges.count > 1 {
-            repeat { newIndex = Int.random(in: 0..<challenges.count) } while newIndex == currentIndex
-        }
-        withAnimation(.easeInOut) {
-            currentIndex = newIndex
+
+        // choose next card: SEQUENTIAL
+        let newIndex = (currentIndex + 1) % challenges.count
+        // If you prefer random, use your old random logic instead.
+
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
             isFlipped = false
+            currentIndex = newIndex
+            cardSwapID = UUID()   // ← forces only the FlipCard to be replaced/animated
         }
+
         shufflesUsed += 1
     }
+
 }
 
 // MARK: - Flip Card (no mirrored text)
@@ -193,7 +207,7 @@ struct FlipCard: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 22)
-                .fill(Color(.systemBackground).opacity(0.92))
+                .fill(Color(red: 255/255, green: 250/255, blue: 238/255))
                 .frame(width: size.width, height: size.height)
                 .shadow(color: .black.opacity(0.12), radius: 10, y: 8)
                 .overlay(
