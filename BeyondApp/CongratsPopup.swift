@@ -21,7 +21,7 @@ struct Popup: View {
                     .ignoresSafeArea()
                 ZStack {
                     Rectangle()
-                        .fill(Color.white)
+                        .fill(Color(red: 255/255, green: 250/255, blue: 238/255))
                         .frame(width: 350, height: 300)
                         .cornerRadius(16) // all corners → use built-in
                         //.clipShape(RoundedCorner(radius: 16, corners: [.topLeft, .topRight, .bottomLeft, .bottomRight]))
@@ -33,14 +33,15 @@ struct Popup: View {
                             // top sction (Purple)
                             ZStack(alignment: .topLeading) {
                                 Rectangle()
-                                    .fill(Color.purple)
+                                    .fill(Color(red: 207/255, green: 214/255, blue: 237/255))
                                     .frame(width: 350, height: 100)
                                     .clipShape(RoundedCorner(radius: 16, corners: [.topLeft, .topRight]))
-                                    .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 10)
+                                   
                                     .overlay(
                                         VStack {
                                             Circle()
-                                                .fill(Color.white)
+                                                .fill(Color(red: 255/255, green: 250/255, blue: 238/255))
+                                                .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 10)
                                                 .frame(width: 110, height: 110)
                                                 .overlay(
                                                     Image(systemName: icon)
@@ -67,7 +68,7 @@ struct Popup: View {
                     }
                     
                     VStack(spacing: 8) {
-                        Text("CONGRATSULATION!")
+                        Text("CONGRATULATIONS!")
                             .font(.headline)
                             .bold()
                             .foregroundColor(.black)
