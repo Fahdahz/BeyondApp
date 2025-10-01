@@ -80,7 +80,7 @@ struct PopupTry: View {
                             .font(.headline)
                             .bold()
                             .foregroundColor(.black)
-                        Text("You can do it!, keep trying.")
+                        Text("You can do it! keep trying.")
                         Text("Good luck!")
                             .font(.subheadline)
                             .foregroundColor(.black)
