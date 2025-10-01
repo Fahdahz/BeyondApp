@@ -151,7 +151,7 @@ struct ContentView: View {
                     }
                     .buttonStyle(.bordered)
                 }
-                .padding(.top, 6)
+                .padding(.top, 55)
 
                 // Stars (start empty; fill as you shuffle)
                 HStack(spacing: 6) {
