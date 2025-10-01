@@ -68,12 +68,25 @@ struct ContentView: View {
                    .ignoresSafeArea()
 
             VStack(spacing: 18) {
-                Banner(title: "TRY TODAY'S\nCHALLENGE")
+                ZStack {
+                    Image("bannerRibbon")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 420,height: 540)   // larger size
+                        .clipped()
+                        .padding(.top, 25)
 
-                    .font(.title3.bold())
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 8)
-                
+                    Text("TRY TODAY'S\nCHALLENGE")
+                        .font(.title2.bold())
+                        .multilineTextAlignment(.center)
+                        .padding(.top,47)
+                        .dynamicTypeSize(.xSmall)
+                        .foregroundColor(.brown)
+                        .opacity(1)
+                }
+                .frame(height: 120)   // lock the space so VStack won’t stretch
+                .padding(.top, 2)
+
                 
                     .overlay(alignment: .topTrailing) {
                         Button {
@@ -87,8 +100,8 @@ struct ContentView: View {
                                 .shadow(radius: 2, y: 1)
                                 .accessibilityLabel(isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")
                         }
-                        .padding(.top, 5)
-                        .padding(.trailing, 190)
+                        .padding(.top, -29)
+                        .padding(.trailing, 320)
                     }
 
 
@@ -131,27 +144,36 @@ struct ContentView: View {
                 }
 
 
-                // Buttons
-                HStack(spacing: 12) {
+                // --- Buttons Row ---
+                HStack(spacing: 16) {
                     Button {
-                        withAnimation(.easeInOut) {
-                            showCongrats = true
-                        }
+                        showCongrats = true
                     } label: {
-                        Label("Did it!", systemImage: "checkmark.seal.fill")
-                            .padding(.horizontal, 10)
+                        Text("DID IT!")
+                            .font(.headline)
+                            .foregroundColor(.brown)
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 20)
+                            .background(Color(red: 248/255, green: 238/255, blue: 210/255))
+                            .cornerRadius(25)
+                            .shadow(color: .black.opacity(0.15), radius: 3, y: 2)
                     }
-                    .buttonStyle(.borderedProminent)
 
                     Button {
                         shuffle()
                     } label: {
-                        Label("Shuffle", systemImage: "shuffle")
-                            .padding(.horizontal, 10)
+                        Text("SHUFFLE")
+                            .font(.headline)
+                            .foregroundColor(.brown)
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 20)
+                            .background(Color(red: 248/255, green: 238/255, blue: 210/255))
+                            .cornerRadius(25)
+                            .shadow(color: .black.opacity(0.15), radius: 3, y: 2)
                     }
-                    .buttonStyle(.bordered)
                 }
-                .padding(.top, 55)
+                .padding(.top, 45)
+
 
                 // Stars (start empty; fill as you shuffle)
                 HStack(spacing: 6) {
