@@ -19,6 +19,8 @@ struct Popup: View {
                 // background overlay
                 Color.black.opacity(0.4)
                     .ignoresSafeArea()
+                    .onTapGesture(perform: onClose) // dismiss on background tap
+                
                 ZStack {
                     Rectangle()
                         .fill(Color(red: 255/255, green: 250/255, blue: 238/255))
@@ -68,14 +70,21 @@ struct Popup: View {
                     }
                     
                     VStack(spacing: 8) {
-                        Text("CONGRATULATIONS!")
+                        Text(title.isEmpty ? "CONGRATULATIONS!" : title)
                             .font(.headline)
                             .bold()
                             .foregroundColor(.black)
-                        Text("Well done, you did it!")
-                        Text("Keep up the good work!")
-                            .font(.subheadline)
-                            .foregroundColor(.black)
+                        if messge.isEmpty {
+                            Text("Well done, you did it!")
+                            Text("Keep up the good work!")
+                                .font(.subheadline)
+                                .foregroundColor(.black)
+                        } else {
+                            Text(messge)
+                                .font(.subheadline)
+                                .multilineTextAlignment(.center)
+                                .foregroundColor(.black)
+                        }
                     }
                     .padding(.top, 120)
                     .padding(.bottom, 20)
@@ -89,5 +98,5 @@ struct Popup: View {
 }
 
 #Preview {
-    Popup(icon: "trophy.fill", title: "Title", messge: "Message text goes here.", onClose: {})
+    Popup(icon: "trophy.fill", title: "CONGRAGULATIONS", messge: "Well done, you did it!\nKeep up the good work!", onClose: {})
 }

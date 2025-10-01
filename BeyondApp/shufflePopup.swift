@@ -4,20 +4,6 @@
 //
 //  Created by Ghadeer Fallatah on 08/04/1447 AH.
 //
-
-//
-//  Untitled.swift
-//  BeyondApp
-//
-//  Created by Ghadeer Fallatah on 08/04/1447 AH.
-//
-
-//
-//  Untitled.swift
-//  BeyondApp
-//
-//  Created by Ghadeer Fallatah on 07/04/1447 AH.
-//
 import SwiftUI
 import UIKit
 
@@ -33,27 +19,24 @@ struct PopupSuffle: View {
                 // background overlay
                 Color.black.opacity(0.4)
                     .ignoresSafeArea()
+                    .onTapGesture(perform: onClose) // dismiss on background tap
+                
                 ZStack {
                     Rectangle()
                         .fill(Color(red: 255/255, green: 250/255, blue: 238/255))
-                    
                         .frame(width: 350, height: 300)
-                        .cornerRadius(16) // all corners → use built-in
-                        //.clipShape(RoundedCorner(radius: 16, corners: [.topLeft, .topRight,.bottomLeft, .bottomRight]))
-                        //.cornerRadius(16)
+                        .cornerRadius(16)
                         .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 10)
                     
                     VStack {
                         VStack(spacing: 16) {
-                            // top sction (Purple)
+                            // top section (Purple)
                             ZStack(alignment: .topLeading) {
                                 Rectangle()
                                     .fill(Color(red: 207/255, green: 214/255, blue: 237/255))
                                     .frame(width: 350, height: 100)
                                     .clipShape(RoundedCorner(radius: 16, corners: [.topLeft, .topRight]))
-                                    
                                     .overlay(
-                                        
                                         VStack {
                                             Circle()
                                                 .fill(Color(red: 255/255, green: 250/255, blue: 238/255))

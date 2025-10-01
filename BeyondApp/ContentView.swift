@@ -93,8 +93,6 @@ struct ContentView: View {
 
 
                 // Layered background cards for the mockup look
-                // Layered background cards for the mockup look
-                // Layered background cards for the mockup look
                 ZStack {
                     // ghost cards (animated with deckShift)
                     RoundedRectangle(cornerRadius: 22)
@@ -123,9 +121,9 @@ struct ContentView: View {
                         size: cardSize
                     )
                     .onTapGesture { withAnimation(.spring()) { isFlipped.toggle() } }
-                    .id(cardSwapID) // ← animate only the top card by changing this ID
+                    .id(cardSwapID)
                     .transition(.asymmetric(
-                        insertion: .fromDeck.combined(with: .opacity),   // ← appear from deck
+                        insertion: .fromDeck.combined(with: .opacity),
                         removal:   .move(edge: .leading).combined(with: .opacity)
                     ))
                     .animation(.spring(response: 0.45, dampingFraction: 0.9), value: cardSwapID)
@@ -136,7 +134,9 @@ struct ContentView: View {
                 // Buttons
                 HStack(spacing: 12) {
                     Button {
-                        showCongrats = true
+                        withAnimation(.easeInOut) {
+                            showCongrats = true
+                        }
                     } label: {
                         Label("Did it!", systemImage: "checkmark.seal.fill")
                             .padding(.horizontal, 10)
@@ -166,36 +166,58 @@ struct ContentView: View {
                 Spacer()
             }
             .padding()
-        }
-        // Congrats pop-up (you can swap the icon with your own asset)
-        .sheet(isPresented: $showCongrats) {
-            CongratsSheet(imageName: "congratsIcon")  // <-- replace with your asset name
-                .presentationDetents([.fraction(0.35)])
-        }
-        // No-shuffles-left pop-up
-        .alert("All shuffles used", isPresented: $showNoShuffles) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("You’ve used all 3 shuffles. Try this challenge!")
+            
+            // Inline Congrats popup overlay
+            if showCongrats {
+                Popup(
+                    icon: "trophy.fill",
+                    title: "CONGRATULATIONS!",
+                    messge: "Well done, you did it!\nKeep up the good work!",
+                    onClose: {
+                        withAnimation(.easeInOut) {
+                            showCongrats = false
+                        }
+                    }
+                )
+                .transition(.opacity)
+                .zIndex(10)
+            }
+            
+            // Inline Shuffle-used popup overlay
+            if showNoShuffles {
+                PopupSuffle(
+                    icon: "shuffle",
+                    title: "ALL SHUFFLES USED!",
+                    messge: "You used all the available shuffles.\nTry this challenge!",
+                    onClose: {
+                        withAnimation(.easeInOut) {
+                            showNoShuffles = false
+                        }
+                    }
+                )
+                .transition(.opacity)
+                .zIndex(11)
+            }
         }
     }
 
     // MARK: - Actions
     private func shuffle() {
         guard shufflesUsed < 3 else {
-            showNoShuffles = true
+            withAnimation(.easeInOut) {
+                showNoShuffles = true
+            }
             return
         }
 
         // choose next card: SEQUENTIAL
         let newIndex = (currentIndex + 1) % challenges.count
-        // If you prefer random, use your old random logic instead.
 
         withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
             isFlipped = false
             currentIndex = newIndex
-            cardSwapID = UUID()   // ← forces only the FlipCard to be replaced/animated
-            deckShift.toggle()    // ← animate the deck movement too
+            cardSwapID = UUID()
+            deckShift.toggle()
         }
 
         shufflesUsed += 1
@@ -241,7 +263,7 @@ struct CardFront: View {
     var body: some View {
         VStack(spacing: 14) {
             AssetImage(name: imageName, fallbackSystem: "text.bubble")
-                .font(.largeTitle) // affects SF Symbol size; ignored by bitmap images
+                .font(.largeTitle)
                 .frame(height: 32)
                 .padding(.top, 6)
 
@@ -276,7 +298,7 @@ struct CardBack: View {
     }
 }
 
-// MARK: - Congrats Sheet
+// MARK: - Congrats Sheet (kept for reference; unused)
 struct CongratsSheet: View {
     let imageName: String
     var body: some View {
@@ -302,7 +324,6 @@ struct AssetImage: View {
     let fallbackSystem: String
 
     var body: some View {
-        // Try asset first; if not found, show system symbol
         if UIImage(named: name) != nil {
             Image(name)
                 .resizable()
@@ -318,8 +339,6 @@ struct AssetImage: View {
 struct Banner: View {
     let title: String
     var body: some View {
-        // If you add a ribbon PNG called "ribbonBanner" to Assets,
-        // replace with Image("ribbonBanner")
         Text(title)
             .font(.title3.bold())
             .multilineTextAlignment(.center)
@@ -348,7 +367,6 @@ private struct DeckFromModifier: ViewModifier {
 }
 
 private extension AnyTransition {
-    // Matches the second ghost card: rotation + offset; tweak as you like
     static var fromDeck: AnyTransition {
         let active = DeckFromModifier(
             offset: CGSize(width: 10, height: 18),
