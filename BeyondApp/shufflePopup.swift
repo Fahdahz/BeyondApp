@@ -36,6 +36,7 @@ struct PopupSuffle: View {
                 ZStack {
                     Rectangle()
                         .fill(Color(red: 255/255, green: 250/255, blue: 238/255))
+                    
                         .frame(width: 350, height: 300)
                         .cornerRadius(16) // all corners → use built-in
                         //.clipShape(RoundedCorner(radius: 16, corners: [.topLeft, .topRight,.bottomLeft, .bottomRight]))
