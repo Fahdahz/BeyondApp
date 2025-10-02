@@ -15,6 +15,8 @@ struct ChallengeItem: Identifiable, Equatable {
     let back: String
 }
 
+enum ChallengeCategory { case indoor, outdoor }
+
 // MARK: - View
 struct ContentView: View {
     // ---- Settings you can tweak ----
@@ -38,6 +40,10 @@ struct ContentView: View {
     @State private var deckShift = false
     @AppStorage("isDarkMode") private var isDarkMode = false
 
+    // Category/deck state
+    @State private var currentCategory: ChallengeCategory = .indoor
+    @State private var deck: [ChallengeItem] = ChallengeDeck.indoor   // start on Indoor
+
     // TESTING: reset allowance every minute (store last reset as timestamp)
     @AppStorage("lastShuffleResetTS") private var lastShuffleResetTS: Double = 0
     private let testResetInterval: TimeInterval = 60 // 1 minute
@@ -51,22 +57,6 @@ struct ContentView: View {
         : [Color(red: 1.0, green: 0.5843, blue: 0.0, opacity: 0.18),   // orange 18%
            Color(red: 1.0, green: 0.4118, blue: 0.7059, opacity: 0.12)] // pink 12%
     }
-
-    // Your challenges
-    private let challenges: [ChallengeItem] = [
-        .init(
-            front: "Compliment someone!",
-            back:  "Opportunity you might miss: sparking a warm chat, lifting someone’s day, and opening the door to future conversations."
-        ),
-        .init(
-            front: "Ask someone for a small recommendation (a book, food, or a place).",
-            back:  "Opportunity you might miss: discovering new interests and finding common ground to keep the conversation going."
-        ),
-        .init(
-            front: "Volunteer for 1–2 hours at a community event!",
-            back:  "Opportunity you might miss: meeting caring people, feeling useful, and growing confidence through shared purpose."
-        )
-    ]
 
     var body: some View {
         ZStack {
@@ -132,8 +122,8 @@ struct ContentView: View {
 
                     // MAIN card
                     FlipCard(
-                        front: AnyView(CardFront(text: challenges[currentIndex].front, imageName: iconFrontName)),
-                        back:  AnyView(CardBack(text: challenges[currentIndex].back,  imageName: iconBackName)),
+                        front: AnyView(CardFront(text: deck[currentIndex].front, imageName: iconFrontName)),
+                        back:  AnyView(CardBack(text: deck[currentIndex].back,  imageName: iconBackName)),
                         isFlipped: isFlipped,
                         size: cardSize
                     )
@@ -242,6 +232,7 @@ struct ContentView: View {
     }
 
     // MARK: - Actions
+    /// Alternates Indoor ↔ Outdoor each tap, then shows a different random card in that category.
     private func shuffle() {
         // Ensure reset if interval passed while app stayed open
         checkAndResetShufflesIfNeeded()
@@ -252,8 +243,14 @@ struct ContentView: View {
             return
         }
 
-        // move to next card (sequential)
-        let newIndex = (currentIndex + 1) % challenges.count
+        // 1) Alternate the category
+        currentCategory = (currentCategory == .indoor) ? .outdoor : .indoor
+        deck = (currentCategory == .indoor) ? ChallengeDeck.indoor : ChallengeDeck.outdoor
+
+        // 2) Choose a new index (try not to repeat the same card)
+        let newIndex = deck.nextRandomIndex(excluding: currentIndex)
+
+        // 3) Animate the swap
         withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
             isFlipped = false
             currentIndex = newIndex
@@ -261,16 +258,13 @@ struct ContentView: View {
             deckShift.toggle()
         }
 
-        // increment usage & notify
+        // 4) Count & notify
         shufflesUsed += 1
         let remaining = maxShuffles - shufflesUsed
 
-        // Optional: show "one left" popup when remaining == 1
         if remaining == 1 {
             withAnimation(.easeInOut) { showOneLeft = true }
         }
-
-        // Show "all used" popup immediately when you reach 0 remaining
         if remaining == 0 {
             withAnimation(.easeInOut) { showNoShuffles = true }
         }
@@ -477,6 +471,67 @@ private extension AnyTransition {
         )
         return .modifier(active: active, identity: identity)
     }
+}
+
+// MARK: - Utility
+extension Array where Element == ChallengeItem {
+    /// Returns a random valid index different from `current` when possible.
+    func nextRandomIndex(excluding current: Int?) -> Int {
+        guard !isEmpty else { return 0 }
+        if count == 1 { return 0 }
+        var i: Int
+        repeat { i = Int.random(in: 0..<count) } while i == current
+        return i
+    }
+}
+
+// MARK: - Decks (10 indoor + 10 outdoor) from your sheets
+enum ChallengeDeck {
+    static let indoor: [ChallengeItem] = [
+        .init(front: "Compliment a family member or a friend on something they did (cooking, outfit, effort)!",
+              back:  "You might miss spreading positivity that strengthens bonds."),
+        .init(front: "Join a family meal, even if just for a short time!",
+              back:  "You might miss enjoying shared food and conversation that builds closeness."),
+        .init(front: "Invite an acquaintance for coffee or a walk!",
+              back:  "You might miss turning an acquaintance into a real friend."),
+        .init(front: "Send a voice note instead of texting!",
+              back:  "You might miss letting them hear your tone and warmth, which builds stronger connections."),
+        .init(front: "Schedule a 5–10 minute video call with family or friends!",
+              back:  "You might miss seeing their expressions and deepening emotional connection."),
+        .init(front: "Send a short text to a family member or friend!",
+              back:  "You might miss reminding someone that you care and keeping the bond alive."),
+        .init(front: "Send a meme, funny video, or song link to someone!",
+              back:  "You might miss making someone smile and starting a lighthearted chat."),
+        .init(front: "Share one small detail about your day with a family member or a friend!",
+              back:  "You might miss opening the door for longer conversations."),
+        .init(front: "Write an email or long message updating a friend about your week!",
+              back:  "You might miss reconnecting more deeply and being on their mind."),
+        .init(front: "Share a photo of something in your daily life with a family member or a friend!",
+              back:  "You might miss sparking a conversation over something simple and relatable.")
+    ]
+
+    static let outdoor: [ChallengeItem] = [
+        .init(front: "Join a local class (yoga, art, cooking) or a gym!",
+              back:  "You might miss learning a new skill and meeting people who share your interests."),
+        .init(front: "Apply for an in-person course!",
+              back:  "You might miss a career step or a doorway to new friends."),
+        .init(front: "Start a short conversation with someone in line!",
+              back:  "You might miss a surprising connection or a moment of shared laughter."),
+        .init(front: "Compliment a passer-by!",
+              back:  "You might miss sparking a warm chat and opening the door to future conversations."),
+        .init(front: "Attend a local event and introduce yourself to at least 3 people!",
+              back:  "You might miss expanding your circle with people who could bring joy or opportunity."),
+        .init(front: "Sit in a public place (café, park) for 5–10 minutes without your phone!",
+              back:  "You might miss noticing how normal it feels to simply “be” around others."),
+        .init(front: "Volunteer for 1–2 hours at a community event!",
+              back:  "You might miss feeling helpful and meeting kind, like-minded people."),
+        .init(front: "Order something new from a café!",
+              back:  "You might miss discovering your new favorite drink."),
+        .init(front: "Hold the door open for someone!",
+              back:  "You might miss a simple positive exchange that boosts mood and confidence."),
+        .init(front: "Ask someone for a small recommendation (a book, food, or a place)!",
+              back:  "You might miss discovering new interests and finding common ground to keep the conversation going.")
+    ]
 }
 
 #Preview {
