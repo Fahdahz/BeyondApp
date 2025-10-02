@@ -16,37 +16,36 @@ struct ChallengeItem: Identifiable, Equatable {
 }
 
 // MARK: - View
-
-
 struct ContentView: View {
     // ---- Settings you can tweak ----
-    // --- Settings (top of Beyond) ---
-    private let cardSize   = CGSize(width: 300, height: 450)   // ← longer/taller
+    private let cardSize   = CGSize(width: 300, height: 450)
     private let cardCorner: CGFloat = 26
-    private let iconFrontName = "cardSparkle"   // put your asset name; SF fallback used if missing
+    private let iconFrontName = "cardSparkle"
     private let iconBackName  = "cardSparkle"
 
-    // --------------------------------
+    private let maxShuffles = 3   // daily allowance
 
+    // --------------------------------
     @State private var currentIndex: Int = 0
     @State private var isFlipped: Bool = false
+
     @State private var shufflesUsed: Int = 0
     @State private var showCongrats: Bool = false
     @State private var showNoShuffles: Bool = false
+    @State private var showOneLeft: Bool = false
+
     @State private var cardSwapID = UUID()
-    @State private var deckShift = false            // ← drives deck movement
+    @State private var deckShift = false
     @AppStorage("isDarkMode") private var isDarkMode = false
 
-    
     private var bgColors: [Color] {
-           isDarkMode
-           ? [.black.opacity(0.92), .black.opacity(0.75)]
-           : [.orange.opacity(0.18), .pink.opacity(0.12)]
-       }
+        isDarkMode
+        ? [.black.opacity(0.92), .black.opacity(0.75)]
+        : [Color(red: 1.0, green: 0.5843, blue: 0.0, opacity: 0.18),   // orange 18%
+           Color(red: 1.0, green: 0.4118, blue: 0.7059, opacity: 0.12)] // pink 12%
+    }
 
-    
-    
-    // Your 3 challenges
+    // Your challenges
     private let challenges: [ChallengeItem] = [
         .init(
             front: "Compliment someone!",
@@ -65,14 +64,15 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             LinearGradient(colors: bgColors, startPoint: .top, endPoint: .bottom)
-                   .ignoresSafeArea()
+                .ignoresSafeArea()
 
             VStack(spacing: 18) {
+                // Banner + dark mode toggle
                 ZStack {
                     Image("bannerRibbon")
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 420,height: 540)   // larger size
+                        .frame(width: 420, height: 540)
                         .clipped()
                         .padding(.top, 25)
 
@@ -84,30 +84,27 @@ struct ContentView: View {
                         .foregroundColor(.brown)
                         .opacity(1)
                 }
-                .frame(height: 120)   // lock the space so VStack won’t stretch
+                .frame(height: 120)
                 .padding(.top, 2)
-
-                
-                    .overlay(alignment: .topTrailing) {
-                        Button {
-                            isDarkMode.toggle()
-                        } label: {
-                            Image(systemName: isDarkMode ? "sun.max.fill" : "moon.fill")
-                                .font(.title3)
-                                .padding(10)
-                                .background(.ultraThinMaterial)
-                                .clipShape(Capsule())
-                                .shadow(radius: 2, y: 1)
-                                .accessibilityLabel(isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")
-                        }
-                        .padding(.top, -29)
-                        .padding(.trailing, 320)
+                .overlay(alignment: .topLeading) {
+                    Button {
+                        isDarkMode.toggle()
+                    } label: {
+                        Image(systemName: isDarkMode ? "sun.max.fill" : "moon.fill")
+                            .font(.title3)
+                            .padding(10)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Capsule())
+                            .shadow(radius: 2, y: 1)
+                            .accessibilityLabel(isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")
                     }
+                    .padding(.leading, 20)
+                    .padding(.top, -6)
+                }
 
-
-                // Layered background cards for the mockup look
+                // Deck look
                 ZStack {
-                    // ghost cards (animated with deckShift)
+                    // ghost cards
                     RoundedRectangle(cornerRadius: 22)
                         .fill(Color(red: 207/255, green: 214/255, blue: 237/255))
                         .frame(width: cardSize.width, height: cardSize.height)
@@ -126,7 +123,7 @@ struct ContentView: View {
                         .shadow(radius: 4, y: 3)
                         .animation(.spring(response: 0.45, dampingFraction: 0.9), value: deckShift)
 
-                    // MAIN card (only this animates)
+                    // MAIN card
                     FlipCard(
                         front: AnyView(CardFront(text: challenges[currentIndex].front, imageName: iconFrontName)),
                         back:  AnyView(CardBack(text: challenges[currentIndex].back,  imageName: iconBackName)),
@@ -143,98 +140,76 @@ struct ContentView: View {
                     .zIndex(1)
                 }
 
-
-                // --- Buttons Row ---
+                // Buttons Row (Shuffle shows remaining)
                 HStack(spacing: 16) {
-                    Button {
+                    SoftButton(title: "DID IT!", systemImage: "checkmark.seal.fill") {
                         showCongrats = true
-                    } label: {
-                        Text("DID IT!")
-                            .font(.headline)
-                            .foregroundColor(.brown)
-                            .padding(.vertical, 10)
-                            .padding(.horizontal, 20)
-                            .background(Color(red: 248/255, green: 238/255, blue: 210/255))
-                            .cornerRadius(25)
-                            .shadow(color: .black.opacity(0.15), radius: 3, y: 2)
                     }
 
-                    Button {
+                    ShuffleButton(remaining: max(0, maxShuffles - shufflesUsed)) {
                         shuffle()
-                    } label: {
-                        Text("SHUFFLE")
-                            .font(.headline)
-                            .foregroundColor(.brown)
-                            .padding(.vertical, 10)
-                            .padding(.horizontal, 20)
-                            .background(Color(red: 248/255, green: 238/255, blue: 210/255))
-                            .cornerRadius(25)
-                            .shadow(color: .black.opacity(0.15), radius: 3, y: 2)
                     }
                 }
-                .padding(.top, 45)
-
-
-                // Stars (start empty; fill as you shuffle)
-                HStack(spacing: 6) {
-                    ForEach(0..<3) { i in
-                        Image(systemName: i < shufflesUsed ? "star.fill" : "star")
-                            .font(.title3)
-                            .foregroundStyle(i < shufflesUsed ? .yellow : .secondary)
-                    }
-                }
-                .padding(.top, 2)
+                .padding(.top, 32)
 
                 Spacer()
             }
             .padding()
-            
-            // Inline Congrats popup overlay
+
+            // Congrats popup
             if showCongrats {
                 Popup(
                     icon: "trophy.fill",
                     title: "CONGRATULATIONS!",
                     messge: "Well done, you did it!\nKeep up the good work!",
                     onClose: {
-                        withAnimation(.easeInOut) {
-                            showCongrats = false
-                        }
+                        withAnimation(.easeInOut) { showCongrats = false }
                     }
                 )
                 .transition(.opacity)
                 .zIndex(10)
             }
-            
-            // Inline Shuffle-used popup overlay
+
+            // One left popup
+            if showOneLeft {
+                PopupSuffle(
+                    icon: "shuffle",
+                    title: "ONE SHUFFLE LEFT",
+                    messge: "You have one shuffle left for today.",
+                    onClose: {
+                        withAnimation(.easeInOut) { showOneLeft = false }
+                    }
+                )
+                .transition(.opacity)
+                .zIndex(11)
+            }
+
+            // All used popup
             if showNoShuffles {
                 PopupSuffle(
                     icon: "shuffle",
                     title: "ALL SHUFFLES USED!",
                     messge: "You used all the available shuffles.\nTry this challenge!",
                     onClose: {
-                        withAnimation(.easeInOut) {
-                            showNoShuffles = false
-                        }
+                        withAnimation(.easeInOut) { showNoShuffles = true }
                     }
                 )
                 .transition(.opacity)
-                .zIndex(11)
+                .zIndex(12)
             }
         }
     }
 
     // MARK: - Actions
     private func shuffle() {
-        guard shufflesUsed < 3 else {
-            withAnimation(.easeInOut) {
-                showNoShuffles = true
-            }
+        // If already at 0 remaining, block and show final popup
+        guard shufflesUsed < maxShuffles else {
+            withAnimation(.easeInOut) { showNoShuffles = true }
             return
         }
 
-        // choose next card: SEQUENTIAL
+        // move to next card (sequential)
         let newIndex = (currentIndex + 1) % challenges.count
-
         withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
             isFlipped = false
             currentIndex = newIndex
@@ -242,9 +217,69 @@ struct ContentView: View {
             deckShift.toggle()
         }
 
+        // increment usage & notify if one left
         shufflesUsed += 1
+        let remaining = maxShuffles - shufflesUsed
+        if remaining == 1 {
+            withAnimation(.easeInOut) { showOneLeft = true }
+        }
+        // Note: we DO NOT show "All used" now; only on the next tap.
     }
+}
 
+// MARK: - Buttons
+struct SoftButton: View {
+    let title: String
+    let systemImage: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                Text(title)
+            }
+            .font(.headline)
+            .foregroundColor(.brown)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 20)
+            .background(Color(red: 248/255, green: 238/255, blue: 210/255))
+            .cornerRadius(25)
+            .shadow(color: .black.opacity(0.15), radius: 3, y: 2)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct ShuffleButton: View {
+    let remaining: Int
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: "shuffle")
+                Text("SHUFFLE")
+                Text("x\(remaining)").font(.headline.monospacedDigit())
+            }
+            .font(.headline)
+            .foregroundColor(.brown.opacity(remaining == 0 ? 0.4 : 1.0))
+            .padding(.vertical, 10)
+            .padding(.horizontal, 20)
+            .background(
+                RoundedRectangle(cornerRadius: 25)
+                    .fill(Color(red: 248/255, green: 238/255, blue: 210/255))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 25)
+                    .stroke(remaining == 0 ? Color.red.opacity(0.2) : Color.clear, lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.15), radius: 3, y: 2)
+        }
+        .buttonStyle(.plain)
+        .disabled(remaining == 0)
+        .accessibilityLabel("Shuffle, \(remaining) left")
+    }
 }
 
 // MARK: - Flip Card (no mirrored text)
@@ -262,11 +297,9 @@ struct FlipCard: View {
                 .shadow(color: .black.opacity(0.12), radius: 10, y: 8)
                 .overlay(
                     ZStack {
-                        // Rotate faces in opposite directions so text is never mirrored
                         front
                             .opacity(isFlipped ? 0 : 1)
                             .rotation3DEffect(.degrees(isFlipped ? 180 : 0), axis: (x: 0, y: 1, z: 0))
-
                         back
                             .opacity(isFlipped ? 1 : 0)
                             .rotation3DEffect(.degrees(isFlipped ? 0 : -180), axis: (x: 0, y: 1, z: 0))
@@ -281,7 +314,6 @@ struct FlipCard: View {
 struct CardFront: View {
     let text: String
     let imageName: String
-
     var body: some View {
         VStack(spacing: 14) {
             AssetImage(name: imageName, fallbackSystem: "text.bubble")
@@ -301,7 +333,6 @@ struct CardFront: View {
 struct CardBack: View {
     let text: String
     let imageName: String
-
     var body: some View {
         VStack(spacing: 12) {
             AssetImage(name: imageName, fallbackSystem: "sparkles")
@@ -344,16 +375,11 @@ struct CongratsSheet: View {
 struct AssetImage: View {
     let name: String
     let fallbackSystem: String
-
     var body: some View {
         if UIImage(named: name) != nil {
-            Image(name)
-                .resizable()
-                .scaledToFit()
+            Image(name).resizable().scaledToFit()
         } else {
-            Image(systemName: fallbackSystem)
-                .resizable()
-                .scaledToFit()
+            Image(systemName: fallbackSystem).resizable().scaledToFit()
         }
     }
 }
@@ -372,10 +398,9 @@ struct Banner: View {
                     .shadow(radius: 2, y: 1)
             )
     }
-    
 }
 
-// MARK: - Custom transition: appear from the deck (matches the back ghost card)
+// MARK: - Custom transition: appear from the deck
 private struct DeckFromModifier: ViewModifier {
     let offset: CGSize
     let rotation: Angle
