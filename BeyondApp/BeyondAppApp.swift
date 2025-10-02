@@ -13,8 +13,10 @@ struct BeyondAppApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .preferredColorScheme(isDarkMode ? .dark : .light)
+            NavigationStack {
+                SplashView()
+            }
+            .preferredColorScheme(isDarkMode ? .dark : .light)
         }
     }
 }

@@ -66,7 +66,7 @@ struct PopupSuffle: View {
                     }
                     
                     VStack(spacing: 8) {
-                        Text("ALL SHUFFLED USED!")
+                        Text("ALL SHUFFLES USED!")
                             .font(.headline)
                             .bold()
                             .foregroundColor(.black)
