@@ -98,8 +98,8 @@ struct ContentView: View {
                             .shadow(radius: 2, y: 1)
                             .accessibilityLabel(isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")
                     }
-                    .padding(.leading, 20)
-                    .padding(.top, -6)
+                    .padding(.leading, 37)
+                    .padding(.top, -29)
                 }
 
                 // Deck look
@@ -170,19 +170,6 @@ struct ContentView: View {
                 .zIndex(10)
             }
 
-            // One left popup
-            if showOneLeft {
-                PopupSuffle(
-                    icon: "shuffle",
-                    title: "ONE SHUFFLE LEFT",
-                    messge: "You have one shuffle left for today.",
-                    onClose: {
-                        withAnimation(.easeInOut) { showOneLeft = false }
-                    }
-                )
-                .transition(.opacity)
-                .zIndex(11)
-            }
 
             // All used popup
             if showNoShuffles {
@@ -191,7 +178,7 @@ struct ContentView: View {
                     title: "ALL SHUFFLES USED!",
                     messge: "You used all the available shuffles.\nTry this challenge!",
                     onClose: {
-                        withAnimation(.easeInOut) { showNoShuffles = true }
+                        withAnimation(.easeInOut) { showNoShuffles = false }
                     }
                 )
                 .transition(.opacity)
@@ -217,13 +204,20 @@ struct ContentView: View {
             deckShift.toggle()
         }
 
-        // increment usage & notify if one left
+        // increment usage & notify
         shufflesUsed += 1
         let remaining = maxShuffles - shufflesUsed
+
+        // Optional: show "one left" popup when remaining == 1
         if remaining == 1 {
             withAnimation(.easeInOut) { showOneLeft = true }
         }
-        // Note: we DO NOT show "All used" now; only on the next tap.
+
+        // Show "all used" popup immediately when you reach 0 remaining
+        if remaining == 0 {
+            withAnimation(.easeInOut) { showNoShuffles = true }
+        }
+        // Note: Shuffle button is disabled at 0; guard above also covers extra taps if you remove the disabled state.
     }
 }
 
