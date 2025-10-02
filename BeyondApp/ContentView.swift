@@ -29,7 +29,7 @@ struct ContentView: View {
     @State private var currentIndex: Int = 0
     @State private var isFlipped: Bool = false
 
-    @State private var shufflesUsed: Int = 0
+    @AppStorage("shufflesUsed") private var shufflesUsed: Int = 0
     @State private var showCongrats: Bool = false
     @State private var showNoShuffles: Bool = false
     @State private var showOneLeft: Bool = false
@@ -37,6 +37,13 @@ struct ContentView: View {
     @State private var cardSwapID = UUID()
     @State private var deckShift = false
     @AppStorage("isDarkMode") private var isDarkMode = false
+
+    // TESTING: reset allowance every minute (store last reset as timestamp)
+    @AppStorage("lastShuffleResetTS") private var lastShuffleResetTS: Double = 0
+    private let testResetInterval: TimeInterval = 60 // 1 minute
+
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var resetTicker: Task<Void, Never>? = nil
 
     private var bgColors: [Color] {
         isDarkMode
@@ -155,6 +162,22 @@ struct ContentView: View {
                 Spacer()
             }
             .padding()
+            .onAppear {
+                initializeResetTimestampIfNeeded()
+                checkAndResetShufflesIfNeeded()
+                startResetTickerIfNeeded()
+            }
+            .onDisappear {
+                stopResetTicker()
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .active {
+                    checkAndResetShufflesIfNeeded()
+                    startResetTickerIfNeeded()
+                } else {
+                    stopResetTicker()
+                }
+            }
 
             // Congrats popup
             if showCongrats {
@@ -169,7 +192,6 @@ struct ContentView: View {
                 .transition(.opacity)
                 .zIndex(10)
             }
-
 
             // All used popup
             if showNoShuffles {
@@ -187,8 +209,43 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - Testing reset (every minute)
+    private func initializeResetTimestampIfNeeded() {
+        if lastShuffleResetTS == 0 {
+            lastShuffleResetTS = Date().timeIntervalSince1970
+        }
+    }
+
+    private func startResetTickerIfNeeded() {
+        guard resetTicker == nil else { return }
+        resetTicker = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(5)) // check every 5 seconds
+                checkAndResetShufflesIfNeeded()
+            }
+        }
+    }
+
+    private func stopResetTicker() {
+        resetTicker?.cancel()
+        resetTicker = nil
+    }
+
+    private func checkAndResetShufflesIfNeeded() {
+        let now = Date().timeIntervalSince1970
+        if now - lastShuffleResetTS >= testResetInterval {
+            shufflesUsed = 0
+            lastShuffleResetTS = now
+            showNoShuffles = false
+            showOneLeft = false
+        }
+    }
+
     // MARK: - Actions
     private func shuffle() {
+        // Ensure reset if interval passed while app stayed open
+        checkAndResetShufflesIfNeeded()
+
         // If already at 0 remaining, block and show final popup
         guard shufflesUsed < maxShuffles else {
             withAnimation(.easeInOut) { showNoShuffles = true }
@@ -217,7 +274,6 @@ struct ContentView: View {
         if remaining == 0 {
             withAnimation(.easeInOut) { showNoShuffles = true }
         }
-        // Note: Shuffle button is disabled at 0; guard above also covers extra taps if you remove the disabled state.
     }
 }
 
