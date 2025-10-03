@@ -5,6 +5,7 @@
 //  Created by Fahdah Alsamari on 07/04/1447 AH.
 //
 
+
 import SwiftUI
 import UIKit
 
@@ -21,10 +22,8 @@ enum ChallengeCategory { case indoor, outdoor }
 struct ContentView: View {
     // ---- Settings you can tweak ----
     private let cardSize   = CGSize(width: 300, height: 450)
-    private let cardCorner: CGFloat = 26
     private let iconFrontName = "cardSparkle"
     private let iconBackName  = "cardSparkle"
-
     private let maxShuffles = 3   // daily allowance
 
     // --------------------------------
@@ -34,7 +33,7 @@ struct ContentView: View {
     @AppStorage("shufflesUsed") private var shufflesUsed: Int = 0
     @State private var showCongrats: Bool = false
     @State private var showNoShuffles: Bool = false
-    @State private var showOneLeft: Bool = false
+    @State private var showCheckIn: Bool = false        // ← confidence popup gate
 
     @State private var cardSwapID = UUID()
     @State private var deckShift = false
@@ -43,6 +42,9 @@ struct ContentView: View {
     // Category/deck state
     @State private var currentCategory: ChallengeCategory = .indoor
     @State private var deck: [ChallengeItem] = ChallengeDeck.indoor   // start on Indoor
+
+    // Confidence store shared with Progress page
+    @StateObject private var confidence = ConfidenceStore()
 
     // TESTING: reset allowance every minute (store last reset as timestamp)
     @AppStorage("lastShuffleResetTS") private var lastShuffleResetTS: Double = 0
@@ -54,148 +56,189 @@ struct ContentView: View {
     private var bgColors: [Color] {
         isDarkMode
         ? [.black.opacity(0.92), .black.opacity(0.75)]
-        : [Color(red: 1.0, green: 0.5843, blue: 0.0, opacity: 0.18),   // orange 18%
-           Color(red: 1.0, green: 0.4118, blue: 0.7059, opacity: 0.12)] // pink 12%
+        : [Color(red: 1.0, green: 0.5843, blue: 0.0, opacity: 0.18),
+           Color(red: 1.0, green: 0.4118, blue: 0.7059, opacity: 0.12)]
     }
 
     var body: some View {
-        ZStack {
-            LinearGradient(colors: bgColors, startPoint: .top, endPoint: .bottom)
-                .ignoresSafeArea()
+        NavigationStack {
+            ZStack {
+                LinearGradient(colors: bgColors, startPoint: .top, endPoint: .bottom)
+                    .ignoresSafeArea()
 
-            VStack(spacing: 18) {
-                // Banner + dark mode toggle
-                ZStack {
-                    Image("bannerRibbon")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 420, height: 540)
-                        .clipped()
-                        .padding(.top, 25)
+                VStack(spacing: 18) {
+                    // Banner + toggles + progress button
+                    ZStack {
+                        Image("bannerRibbon")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 420, height: 540)
+                            .clipped()
+                            .padding(.top, 25)
 
-                    Text("TRY TODAY'S\nCHALLENGE")
-                        .font(.title2.bold())
-                        .multilineTextAlignment(.center)
-                        .padding(.top,47)
-                        .dynamicTypeSize(.xSmall)
-                        .foregroundColor(.brown)
-                        .opacity(1)
-                }
-                .frame(height: 120)
-                .padding(.top, 2)
-                .overlay(alignment: .topLeading) {
-                    Button {
-                        isDarkMode.toggle()
-                    } label: {
-                        Image(systemName: isDarkMode ? "sun.max.fill" : "moon.fill")
-                            .font(.title3)
-                            .padding(10)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Capsule())
-                            .shadow(radius: 2, y: 1)
-                            .accessibilityLabel(isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")
+                        Text("TRY TODAY'S\nCHALLENGE")
+                            .font(.title2.bold())
+                            .multilineTextAlignment(.center)
+                            .padding(.top,47)
+                            .dynamicTypeSize(.xSmall)
+                            .foregroundColor(.brown)
+                            .opacity(1)
                     }
-                    .padding(.leading, 37)
-                    .padding(.top, -29)
-                }
-
-                // Deck look
-                ZStack {
-                    // ghost cards
-                    RoundedRectangle(cornerRadius: 22)
-                        .fill(Color(red: 207/255, green: 214/255, blue: 237/255))
-                        .frame(width: cardSize.width, height: cardSize.height)
-                        .rotationEffect(.degrees(deckShift ? -10 : -6))
-                        .offset(x: deckShift ? -14 : -8, y: deckShift ? 16 : 12)
-                        .scaleEffect(deckShift ? 0.98 : 1.0)
-                        .shadow(radius: 4, y: 3)
-                        .animation(.spring(response: 0.45, dampingFraction: 0.9), value: deckShift)
-
-                    RoundedRectangle(cornerRadius: 22)
-                        .fill(Color(red: 207/255, green: 214/255, blue: 237/255))
-                        .frame(width: cardSize.width, height: cardSize.height)
-                        .rotationEffect(.degrees(deckShift ? 8 : 6))
-                        .offset(x: deckShift ? 16 : 10, y: deckShift ? 22 : 18)
-                        .scaleEffect(deckShift ? 0.98 : 1.0)
-                        .shadow(radius: 4, y: 3)
-                        .animation(.spring(response: 0.45, dampingFraction: 0.9), value: deckShift)
-
-                    // MAIN card
-                    FlipCard(
-                        front: AnyView(CardFront(text: deck[currentIndex].front, imageName: iconFrontName)),
-                        back:  AnyView(CardBack(text: deck[currentIndex].back,  imageName: iconBackName)),
-                        isFlipped: isFlipped,
-                        size: cardSize
-                    )
-                    .onTapGesture { withAnimation(.spring()) { isFlipped.toggle() } }
-                    .id(cardSwapID)
-                    .transition(.asymmetric(
-                        insertion: .fromDeck.combined(with: .opacity),
-                        removal:   .move(edge: .leading).combined(with: .opacity)
-                    ))
-                    .animation(.spring(response: 0.45, dampingFraction: 0.9), value: cardSwapID)
-                    .zIndex(1)
-                }
-
-                // Buttons Row (Shuffle shows remaining)
-                HStack(spacing: 16) {
-                    SoftButton(title: "DID IT!", systemImage: "checkmark.seal.fill") {
-                        showCongrats = true
+                    .frame(height: 120)
+                    .padding(.top, 2)
+                    .overlay(alignment: .topLeading) {
+                        Button { isDarkMode.toggle() } label: {
+                            Image(systemName: isDarkMode ? "sun.max.fill" : "moon.fill")
+                                .font(.title3)
+                                .padding(10)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Capsule())
+                                .shadow(radius: 2, y: 1)
+                                .accessibilityLabel(isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")
+                        }
+                        .padding(.leading, 37)
+                        .padding(.top, -29)
+                    }
+                    .overlay(alignment: .topTrailing) {
+                        // 🔗 Go to your real ProgressPage
+                        NavigationLink {
+                            ProgressPage(store: confidence)   // <<<<<<<<<<
+                                .environmentObject(confidence)
+                        } label: {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .font(.title3)
+                                .padding(10)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Capsule())
+                                .shadow(radius: 2, y: 1)
+                        }
+                        .padding(.trailing, 16)
+                        .padding(.top, -29)
                     }
 
-                    ShuffleButton(remaining: max(0, maxShuffles - shufflesUsed)) {
-                        shuffle()
-                    }
-                }
-                .padding(.top, 32)
+                    // Deck look
+                    ZStack {
+                        // ghost cards
+                        RoundedRectangle(cornerRadius: 22)
+                            .fill(Color(red: 207/255, green: 214/255, blue: 237/255))
+                            .frame(width: cardSize.width, height: cardSize.height)
+                            .rotationEffect(.degrees(deckShift ? -10 : -6))
+                            .offset(x: deckShift ? -14 : -8, y: deckShift ? 16 : 12)
+                            .scaleEffect(deckShift ? 0.98 : 1.0)
+                            .shadow(radius: 4, y: 3)
+                            .animation(.spring(response: 0.45, dampingFraction: 0.9), value: deckShift)
 
-                Spacer()
-            }
-            .padding()
-            .onAppear {
-                initializeResetTimestampIfNeeded()
-                checkAndResetShufflesIfNeeded()
-                startResetTickerIfNeeded()
-            }
-            .onDisappear {
-                stopResetTicker()
-            }
-            .onChange(of: scenePhase) { _, newPhase in
-                if newPhase == .active {
+                        RoundedRectangle(cornerRadius: 22)
+                            .fill(Color(red: 207/255, green: 214/255, blue: 237/255))
+                            .frame(width: cardSize.width, height: cardSize.height)
+                            .rotationEffect(.degrees(deckShift ? 8 : 6))
+                            .offset(x: deckShift ? 16 : 10, y: deckShift ? 22 : 18)
+                            .scaleEffect(deckShift ? 0.98 : 1.0)
+                            .shadow(radius: 4, y: 3)
+                            .animation(.spring(response: 0.45, dampingFraction: 0.9), value: deckShift)
+
+                        // MAIN card
+                        FlipCard(
+                            front: AnyView(CardFront(text: deck[currentIndex].front, imageName: iconFrontName)),
+                            back:  AnyView(CardBack(text: deck[currentIndex].back,  imageName: iconBackName)),
+                            isFlipped: isFlipped,
+                            size: cardSize
+                        )
+                        .onTapGesture { withAnimation(.spring()) { isFlipped.toggle() } }
+                        .id(cardSwapID)
+                        .transition(.asymmetric(
+                            insertion: .fromDeck.combined(with: .opacity),
+                            removal:   .move(edge: .leading).combined(with: .opacity)
+                        ))
+                        .animation(.spring(response: 0.45, dampingFraction: 0.9), value: cardSwapID)
+                        .zIndex(1)
+                    }
+
+                    // Buttons Row (Shuffle shows remaining)
+                    HStack(spacing: 16) {
+                        SoftButton(title: "DID IT!", systemImage: "checkmark.seal.fill") {
+                            // show the confidence check-in first
+                            showCheckIn = true
+                        }
+
+                        ShuffleButton(remaining: max(0, maxShuffles - shufflesUsed)) {
+                            shuffle()
+                        }
+                    }
+                    .padding(.top, 32)
+
+                    Spacer()
+                }
+                .padding()
+                .onAppear {
+                    initializeResetTimestampIfNeeded()
                     checkAndResetShufflesIfNeeded()
                     startResetTickerIfNeeded()
-                } else {
+                }
+                .onDisappear {
                     stopResetTicker()
                 }
-            }
-
-            // Congrats popup
-            if showCongrats {
-                Popup(
-                    icon: "trophy.fill",
-                    title: "CONGRATULATIONS!",
-                    messge: "Well done, you did it!\nKeep up the good work!",
-                    onClose: {
-                        withAnimation(.easeInOut) { showCongrats = false }
+                .onChange(of: scenePhase) { _, newPhase in
+                    if newPhase == .active {
+                        checkAndResetShufflesIfNeeded()
+                        startResetTickerIfNeeded()
+                    } else {
+                        stopResetTicker()
                     }
-                )
-                .transition(.opacity)
-                .zIndex(10)
-            }
+                }
 
-            // All used popup
-            if showNoShuffles {
-                PopupSuffle(
-                    icon: "shuffle",
-                    title: "ALL SHUFFLES USED!",
-                    messge: "You used all the available shuffles.\nTry this challenge!",
-                    onClose: {
-                        withAnimation(.easeInOut) { showNoShuffles = false }
-                    }
-                )
-                .transition(.opacity)
-                .zIndex(12)
+                // Congrats popup
+                if showCongrats {
+                    Popup(
+                        icon: "trophy.fill",
+                        title: "CONGRATULATIONS!",
+                        messge: "Well done, you did it!\nKeep up the good work!",
+                        onClose: {
+                            withAnimation(.easeInOut) { showCongrats = false }
+                        }
+                    )
+                    .transition(.opacity)
+                    .zIndex(10)
+                }
+
+                // All used popup
+                if showNoShuffles {
+                    PopupSuffle(
+                        icon: "shuffle",
+                        title: "ALL SHUFFLES USED!",
+                        messge: "You used all the available shuffles.\nTry this challenge!",
+                        onClose: {
+                            withAnimation(.easeInOut) { showNoShuffles = false }
+                        }
+                    )
+                    .transition(.opacity)
+                    .zIndex(12)
+                }
+
+                // Confidence check-in popup (your separate file)
+                if showCheckIn {
+                    ConfidenceCheckInPopup(
+                        isDarkMode: isDarkMode,
+                        onSkip: {
+                            // skip saving, but still show congrats
+                            showCheckIn = false
+                            withAnimation(.easeInOut) { showCongrats = true }
+                        },
+                        onSave: { before, after in
+                            // Save to the SAME store used by ProgressPage
+                            confidence.add(before: before, after: after)
+                            showCheckIn = false
+                            withAnimation(.easeInOut) { showCongrats = true }
+                        },
+                        onClose: {
+                            showCheckIn = false
+                        }
+                    )
+                    .transition(.opacity)
+                    .zIndex(11)
+                }
             }
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 
@@ -227,7 +270,6 @@ struct ContentView: View {
             shufflesUsed = 0
             lastShuffleResetTS = now
             showNoShuffles = false
-            showOneLeft = false
         }
     }
 
@@ -262,9 +304,6 @@ struct ContentView: View {
         shufflesUsed += 1
         let remaining = maxShuffles - shufflesUsed
 
-        if remaining == 1 {
-            withAnimation(.easeInOut) { showOneLeft = true }
-        }
         if remaining == 0 {
             withAnimation(.easeInOut) { showNoShuffles = true }
         }
@@ -395,26 +434,6 @@ struct CardBack: View {
     }
 }
 
-// MARK: - Congrats Sheet (kept for reference; unused)
-struct CongratsSheet: View {
-    let imageName: String
-    var body: some View {
-        VStack(spacing: 16) {
-            AssetImage(name: imageName, fallbackSystem: "trophy.fill")
-                .font(.system(size: 54))
-                .frame(height: 54)
-
-            Text("Congratulations!")
-                .font(.title2.bold())
-            Text("Well done—you did it! Keep going ✨")
-                .multilineTextAlignment(.center)
-
-            Spacer()
-        }
-        .padding()
-    }
-}
-
 // MARK: - Helper to use your Assets with a fallback SF Symbol
 struct AssetImage: View {
     let name: String
@@ -425,22 +444,6 @@ struct AssetImage: View {
         } else {
             Image(systemName: fallbackSystem).resizable().scaledToFit()
         }
-    }
-}
-
-struct Banner: View {
-    let title: String
-    var body: some View {
-        Text(title)
-            .font(.title3.bold())
-            .multilineTextAlignment(.center)
-            .padding(.vertical, 6)
-            .padding(.horizontal, 18)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(.white.opacity(0.35))
-                    .shadow(radius: 2, y: 1)
-            )
     }
 }
 
@@ -537,4 +540,3 @@ enum ChallengeDeck {
 #Preview {
     ContentView()
 }
-
