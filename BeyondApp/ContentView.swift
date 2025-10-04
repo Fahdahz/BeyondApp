@@ -76,7 +76,7 @@ struct ContentView: View {
                             .clipped()
                             .padding(.top, 25)
 
-                        Text("TRY TODAY'S\nCHALLENGE")
+                        Text("TAP TODAY'S\nCHALLENGE")
                             .font(.title2.bold())
                             .multilineTextAlignment(.center)
                             .padding(.top,47)
