@@ -37,7 +37,6 @@ struct ContentView: View {
 
     @State private var cardSwapID = UUID()
     @State private var deckShift = false
-    @AppStorage("isDarkMode") private var isDarkMode = false
 
     // Category/deck state
     @State private var currentCategory: ChallengeCategory = .indoor
@@ -53,21 +52,21 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var resetTicker: Task<Void, Never>? = nil
 
-    private var bgColors: [Color] {
-        isDarkMode
-        ? [.black.opacity(0.92), .black.opacity(0.75)]
-        : [Color(red: 1.0, green: 0.5843, blue: 0.0, opacity: 0.18),
-           Color(red: 1.0, green: 0.4118, blue: 0.7059, opacity: 0.12)]
-    }
-
     var body: some View {
         NavigationStack {
             ZStack {
-                LinearGradient(colors: bgColors, startPoint: .top, endPoint: .bottom)
-                    .ignoresSafeArea()
+                LinearGradient(
+                    colors: [
+                        Color(red: 1.0, green: 0.5843, blue: 0.0, opacity: 0.18),
+                        Color(red: 1.0, green: 0.4118, blue: 0.7059, opacity: 0.12)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
 
                 VStack(spacing: 18) {
-                    // Banner + toggles + progress button
+                    // Banner + progress button
                     ZStack {
                         Image("bannerRibbon")
                             .resizable()
@@ -86,19 +85,6 @@ struct ContentView: View {
                     }
                     .frame(height: 120)
                     .padding(.top, 2)
-                    .overlay(alignment: .topLeading) {
-                        Button { isDarkMode.toggle() } label: {
-                            Image(systemName: isDarkMode ? "sun.max.fill" : "moon.fill")
-                                .font(.title3)
-                                .padding(10)
-                                .background(.ultraThinMaterial)
-                                .clipShape(Capsule())
-                                .shadow(radius: 2, y: 1)
-                                .accessibilityLabel(isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")
-                        }
-                        .padding(.leading, 37)
-                        .padding(.top, -29)
-                    }
                     .overlay(alignment: .topTrailing) {
                         // 🔗 Go to your real ProgressPage
                         NavigationLink {
@@ -112,8 +98,8 @@ struct ContentView: View {
                                 .clipShape(Capsule())
                                 .shadow(radius: 2, y: 1)
                         }
-                        .padding(.trailing, 16)
-                        .padding(.top, -29)
+                        .padding(.trailing, 330)
+                        .padding(.top, -22)
                     }
 
                     // Deck look
@@ -218,7 +204,7 @@ struct ContentView: View {
                 // Confidence check-in popup (your separate file)
                 if showCheckIn {
                     ConfidenceCheckInPopup(
-                        isDarkMode: isDarkMode,
+                        isDarkMode: false,
                         onSkip: {
                             // skip saving, but still show congrats
                             showCheckIn = false

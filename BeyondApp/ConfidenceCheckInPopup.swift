@@ -56,7 +56,7 @@ struct ConfidenceCheckInPopup: View {
                     Text("Quick before/after confidence check to track progress on your Progress page.")
                         .font(.subheadline)
                         .multilineTextAlignment(.center)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.black.opacity(0.7))
                         .padding(.horizontal)
 
                     Meter(title: "Before", value: $before)
@@ -91,9 +91,13 @@ struct ConfidenceCheckInPopup: View {
         var body: some View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text(title).font(.subheadline.weight(.semibold))
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.black)
                     Spacer()
-                    Text("\(Int(value))/5").font(.caption).foregroundStyle(.secondary)
+                    Text("\(Int(value))/5")
+                        .font(.caption)
+                        .foregroundStyle(.black.opacity(0.6))
                 }
                 Slider(value: $value, in: 0...5, step: 1).tint(.blue)
             }
@@ -136,3 +140,4 @@ struct ConfidenceCheckInPopup: View {
         onClose: {}
     )
 }
+
