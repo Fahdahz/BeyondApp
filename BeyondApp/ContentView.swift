@@ -38,6 +38,9 @@ struct ContentView: View {
     @State private var cardSwapID = UUID()
     @State private var deckShift = false
 
+    // Confetti control
+    @State private var showConfetti: Bool = false
+
     // Category/deck state
     @State private var currentCategory: ChallengeCategory = .indoor
     @State private var deck: [ChallengeItem] = ChallengeDeck.indoor   // start on Indoor
@@ -98,8 +101,8 @@ struct ContentView: View {
                                 .clipShape(Capsule())
                                 .shadow(radius: 2, y: 1)
                         }
-                        .padding(.trailing, 330)
-                        .padding(.top, -22)
+                        .padding(.trailing, 30)
+                        .padding(.top, -29)
                     }
 
                     // Deck look
@@ -171,6 +174,25 @@ struct ContentView: View {
                     } else {
                         stopResetTicker()
                     }
+                }
+                .onChange(of: showCongrats) { _, newValue in
+                    // Trigger a short confetti burst whenever congrats appears
+                    if newValue {
+                        showConfetti = true
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .seconds(3))
+                            showConfetti = false
+                        }
+                    }
+                }
+
+                // Confetti overlay (behind popups)
+                if showConfetti {
+                    ConfettiView(isActive: showConfetti, duration: 2.0)
+                        .ignoresSafeArea()
+                        .allowsHitTesting(false)
+                        .transition(.opacity)
+                        .zIndex(9) // keep it behind popups
                 }
 
                 // Congrats popup
@@ -525,4 +547,126 @@ enum ChallengeDeck {
 
 #Preview {
     ContentView()
+}
+
+// MARK: - Confetti (UIKit CAEmitterLayer wrapped for SwiftUI)
+private struct ConfettiView: UIViewRepresentable {
+    var isActive: Bool
+    var duration: TimeInterval = 2.0
+
+    func makeUIView(context: Context) -> ConfettiEmitterView {
+        let v = ConfettiEmitterView()
+        v.isUserInteractionEnabled = false
+        return v
+    }
+
+    func updateUIView(_ uiView: ConfettiEmitterView, context: Context) {
+        if isActive {
+            uiView.start(duration: duration)
+        } else {
+            uiView.stop()
+        }
+    }
+}
+
+private final class ConfettiEmitterView: UIView {
+    override class var layerClass: AnyClass { CAEmitterLayer.self }
+
+    private var hasConfigured = false
+
+    private var emitterLayer: CAEmitterLayer? { layer as? CAEmitterLayer }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        guard let emitter = emitterLayer else { return }
+        emitter.emitterPosition = CGPoint(x: bounds.midX, y: -10)
+        emitter.emitterShape = .line
+        emitter.emitterSize = CGSize(width: bounds.size.width, height: 2)
+    }
+
+    func start(duration: TimeInterval) {
+        guard let emitter = emitterLayer else { return }
+
+        if !hasConfigured {
+            emitter.emitterCells = makeConfettiCells()
+            hasConfigured = true
+        }
+
+        emitter.birthRate = 1.0
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
+            self?.stop()
+        }
+    }
+
+    func stop() {
+        guard let emitter = emitterLayer else { return }
+        emitter.birthRate = 0.0
+        // Let existing particles finish
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak emitter] in
+            emitter?.emitterCells = nil
+        }
+        hasConfigured = false
+    }
+
+    private func makeConfettiCells() -> [CAEmitterCell] {
+        // Softer pastel palette
+        let colors: [UIColor] = [
+            UIColor(red: 1.00, green: 0.85, blue: 0.78, alpha: 1.0), // pastel peach
+            UIColor(red: 1.00, green: 0.80, blue: 0.86, alpha: 1.0), // pastel pink
+            UIColor(red: 0.75, green: 0.90, blue: 1.00, alpha: 1.0), // baby blue
+            UIColor(red: 0.80, green: 0.95, blue: 0.80, alpha: 1.0), // mint green
+            UIColor(red: 1.00, green: 0.94, blue: 0.75, alpha: 1.0), // pale yellow
+            UIColor(red: 0.90, green: 0.80, blue: 1.00, alpha: 1.0)  // lavender
+        ]
+
+        let shapes: [ConfettiShape] = [.rectangle, .circle, .triangle]
+
+        return colors.flatMap { color in
+            shapes.map { shape -> CAEmitterCell in
+                let cell = CAEmitterCell()
+                cell.contents = makeImage(shape: shape, color: color, size: CGSize(width: 8, height: 8))?.cgImage
+                // Fewer, smaller, and softer
+                cell.birthRate = 4
+                cell.lifetime = 5.0
+                cell.lifetimeRange = 1.5
+                cell.velocity = 120
+                cell.velocityRange = 50
+                cell.emissionLongitude = .pi
+                cell.emissionRange = .pi / 12
+                cell.spin = 1.2
+                cell.spinRange = 1.8
+                cell.scale = 0.45
+                cell.scaleRange = 0.2
+                cell.yAcceleration = 90
+                cell.xAcceleration = 6
+                // Gentle fade out
+                cell.alphaRange = 0.2
+                cell.alphaSpeed = -0.2
+                return cell
+            }
+        }
+    }
+
+    private enum ConfettiShape { case rectangle, circle, triangle }
+
+    private func makeImage(shape: ConfettiShape, color: UIColor, size: CGSize = CGSize(width: 8, height: 8)) -> UIImage? {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { _ in
+            color.setFill()
+            switch shape {
+            case .rectangle:
+                UIBezierPath(rect: CGRect(origin: .zero, size: size)).fill()
+            case .circle:
+                UIBezierPath(ovalIn: CGRect(origin: .zero, size: size)).fill()
+            case .triangle:
+                let path = UIBezierPath()
+                path.move(to: CGPoint(x: size.width/2, y: 0))
+                path.addLine(to: CGPoint(x: size.width, y: size.height))
+                path.addLine(to: CGPoint(x: 0, y: size.height))
+                path.close()
+                path.fill()
+            }
+        }
+    }
 }
