@@ -101,7 +101,7 @@ struct ContentView: View {
                                 .clipShape(Capsule())
                                 .shadow(radius: 2, y: 1)
                         }
-                        .padding(.trailing, 30)
+                        .padding(.trailing, 31)
                         .padding(.top, -29)
                     }
 
