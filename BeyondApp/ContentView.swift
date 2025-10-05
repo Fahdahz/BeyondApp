@@ -95,11 +95,14 @@ struct ContentView: View {
                                 .environmentObject(confidence)
                         } label: {
                             Image(systemName: "chart.line.uptrend.xyaxis")
+                                .renderingMode(.template)
+                                .foregroundColor(.brown)
+                                .opacity(0.8)
                                 .font(.title3)
                                 .padding(10)
                                 .background(.ultraThinMaterial)
                                 .clipShape(Capsule())
-                                .shadow(radius: 2, y: 1)
+                                .shadow(radius: 0.3, y: 1)
                         }
                         .padding(.trailing, 31)
                         .padding(.top, -29)
