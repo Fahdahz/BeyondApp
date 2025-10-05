@@ -28,7 +28,7 @@ struct ProgressPage: View {
 
                     // Weekly headline card
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Your confidence grew \(store.thisWeekPercent())% this week — nice!")
+                        Text("Your confidence grew \(store.thisWeekPercent())% this week — You're doing great!")
                             .font(.headline)
                         MiniLine(values: store.last14().deltas)
                             .frame(height: 72)

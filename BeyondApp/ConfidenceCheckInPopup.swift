@@ -33,7 +33,7 @@ struct ConfidenceCheckInPopup: View {
                     .frame(height: 56)
                     .overlay(
                         HStack {
-                            Text("How did it feel?")
+                            Text("How confident are you?")
                                 .font(.headline)
                                 .foregroundStyle(.black.opacity(0.9))
                             //Spacer()
@@ -53,7 +53,7 @@ struct ConfidenceCheckInPopup: View {
 
                 // Body (cream like your popup)
                 VStack(spacing: 14) {
-                    Text("Quick before/after confidence check to track progress on your Progress page.")
+                    Text("Quick before/after confidence check  to track your progress!! 👀")
                         .font(.subheadline)
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.black.opacity(0.7))
