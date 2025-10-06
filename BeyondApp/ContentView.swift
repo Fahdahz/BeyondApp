@@ -183,7 +183,7 @@ struct ContentView: View {
                     if newValue {
                         showConfetti = true
                         Task { @MainActor in
-                            try? await Task.sleep(for: .seconds(3))
+                            try? await Task.sleep(for: .seconds(5))
                             showConfetti = false
                         }
                     }
@@ -191,7 +191,7 @@ struct ContentView: View {
 
                 // Confetti overlay (behind popups)
                 if showConfetti {
-                    ConfettiView(isActive: showConfetti, duration: 2.0)
+                    ConfettiView(isActive: showConfetti, duration: 5.0)
                         .ignoresSafeArea()
                         .allowsHitTesting(false)
                         .transition(.opacity)
